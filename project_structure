@@ -1,0 +1,31 @@
+windows-password-recovery/
+├── src/
+│   ├── main.py                 # Entry point del programma
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── registry_handler.py # Gestione del registro di Windows
+│   │   ├── sam_parser.py      # Parser per il file SAM
+│   │   └── password_reset.py   # Logica principale del reset password
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── system_check.py    # Verifica dei requisiti di sistema
+│   │   └── logger.py          # Gestione dei log
+│   └── ui/
+│       ├── __init__.py
+│       └── cli.py             # Interfaccia a riga di comando
+├── requirements.txt
+└── README.md 
+
+└── metaforge/
+    ├── core/
+    │   ├── win_api.mf         # Definizioni API Windows
+    │   ├── memory.mf          # Operazioni memoria
+    │   ├── process.mf         # Gestione processi
+    │   └── registry.mf        # Accesso registro
+    ├── crypto/
+    │   ├── hash.mf           # Funzioni hash
+    │   └── cipher.mf         # Cifratura/decifratura
+    └── exploit/
+        ├── privilege.mf      # Escalation privilegi
+        ├── injection.mf      # Code injection
+        └── bypass.mf         # Bypass sicurezza 

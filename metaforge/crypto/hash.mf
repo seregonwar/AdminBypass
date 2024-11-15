@@ -1,0 +1,77 @@
+// Funzioni di hashing
+struct HashContext {
+    ptr state;
+    u32 size;
+    u32 algorithm; // 1=MD5, 2=SHA1, 3=SHA256
+}
+
+fn init_hash(u32 algorithm) -> HashContext {
+    let ctx = HashContext {
+        state: alloc(64),
+        size: 0,
+        algorithm: algorithm
+    };
+    
+    // Initialize based on algorithm
+    switch (algorithm) {
+        case 1: // MD5
+            md5_init(ctx.state);
+            break;
+        case 2: // SHA1
+            sha1_init(ctx.state);
+            break;
+        case 3: // SHA256
+            sha256_init(ctx.state);
+            break;
+    }
+    
+    ret ctx;
+}
+
+fn update_hash(HashContext ctx, ptr data, u32 length) -> bool {
+    switch (ctx.algorithm) {
+        case 1:
+            md5_update(ctx.state, data, length);
+            break;
+        case 2:
+            sha1_update(ctx.state, data, length);
+            break;
+        case 3:
+            sha256_update(ctx.state, data, length);
+            break;
+    }
+    
+    ctx.size = ctx.size + length;
+    ret true;
+}
+
+fn finalize_hash(HashContext ctx) -> ptr {
+    let hash_size = 0;
+    switch (ctx.algorithm) {
+        case 1:
+            hash_size = 16; // MD5
+            break;
+        case 2:
+            hash_size = 20; // SHA1
+            break;
+        case 3:
+            hash_size = 32; // SHA256
+            break;
+    }
+    
+    let hash = alloc(hash_size);
+    
+    switch (ctx.algorithm) {
+        case 1:
+            md5_final(ctx.state, hash);
+            break;
+        case 2:
+            sha1_final(ctx.state, hash);
+            break;
+        case 3:
+            sha256_final(ctx.state, hash);
+            break;
+    }
+    
+    ret hash;
+}

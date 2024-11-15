@@ -1,0 +1,51 @@
+// Windows API definitions with advanced features
+struct HANDLE { ptr value; }
+struct HKEY { ptr value; }
+struct SECURITY_ATTRIBUTES {
+    u32 length;
+    ptr security_descriptor;
+    bool inherit_handle;
+}
+
+// Advanced Process API
+fn OpenProcess(u32 access, bool inherit, u32 pid) -> HANDLE {
+    import c "kernel32.dll::OpenProcess";
+    ret OpenProcess(access, inherit, pid);
+}
+
+fn NtOpenProcess(ptr handle, u32 access, ptr object_attributes, ptr client_id) -> u32 {
+    import c "ntdll.dll::NtOpenProcess";
+    ret NtOpenProcess(handle, access, object_attributes, client_id);
+}
+
+// Advanced Registry API
+fn NtOpenKey(ptr handle, u32 access, ptr object_attributes) -> u32 {
+    import c "ntdll.dll::NtOpenKey";
+    ret NtOpenKey(handle, access, object_attributes);
+}
+
+fn NtSetValueKey(HANDLE key, ptr value_name, u32 title_index, u32 type, ptr data, u32 data_size) -> u32 {
+    import c "ntdll.dll::NtSetValueKey";
+    ret NtSetValueKey(key, value_name, title_index, type, data, data_size);
+}
+
+// Advanced Memory API
+fn NtAllocateVirtualMemory(HANDLE process, ptr base_address, u32 zero_bits, ptr region_size, 
+                          u32 allocation_type, u32 protect) -> u32 {
+    import c "ntdll.dll::NtAllocateVirtualMemory";
+    ret NtAllocateVirtualMemory(process, base_address, zero_bits, region_size, allocation_type, protect);
+}
+
+fn NtProtectVirtualMemory(HANDLE process, ptr base_address, ptr region_size, 
+                         u32 new_protect, ptr old_protect) -> u32 {
+    import c "ntdll.dll::NtProtectVirtualMemory";
+    ret NtProtectVirtualMemory(process, base_address, region_size, new_protect, old_protect);
+}
+
+// System Call Interface
+fn NtSystemDebugControl(u32 control_code, ptr input_buffer, u32 input_length,
+                       ptr output_buffer, u32 output_length, ptr return_length) -> u32 {
+    import c "ntdll.dll::NtSystemDebugControl";
+    ret NtSystemDebugControl(control_code, input_buffer, input_length, 
+                           output_buffer, output_length, return_length);
+} 

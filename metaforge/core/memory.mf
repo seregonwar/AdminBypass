@@ -1,0 +1,139 @@
+import "win_api.mf";
+
+struct MemoryBlock {
+    ptr address;
+    u32 size;
+    u32 protection;
+}
+
+struct MEMORY_BASIC_INFORMATION {
+    ptr base_address;
+    ptr allocation_base;
+    u32 allocation_protect;
+    u32 region_size;
+    u32 state;
+    u32 protect;
+    u32 type;
+}
+
+// Advanced memory operations
+fn map_physical_memory(ptr physical_address, u32 size) -> MemoryBlock {
+    let section_handle = alloc sizeof(HANDLE);
+    let base_address = alloc sizeof(ptr);
+    let view_size = alloc sizeof(u32);
+    deref view_size = size;
+    
+    // Create physical memory section
+    let status = NtOpenSection(
+        section_handle,
+        0xF001F,  // All access
+        null
+    );
+    
+    if status != 0 {
+        ret null;
+    }
+    
+    // Map view of physical memory
+    status = NtMapViewOfSection(
+        deref section_handle,
+        GetCurrentProcess(),
+        base_address,
+        0,
+        size,
+        physical_address,
+        view_size,
+        1,  // ViewShare
+        0,
+        4   // PAGE_READWRITE
+    );
+    
+    if status != 0 {
+        ret null;
+    }
+    
+    let block = MemoryBlock {
+        address: deref base_address,
+        size: size,
+        protection: 4  // PAGE_READWRITE
+    };
+    
+    ret block;
+}
+
+// Direct physical memory access
+fn read_physical_memory(ptr address, u32 size) -> ptr {
+    let block = map_physical_memory(address, size);
+    if block == null {
+        ret null;
+    }
+    
+    let buffer = alloc size;
+    memcpy(buffer, block.address, size);
+    
+    ret buffer;
+}
+
+fn write_physical_memory(ptr address, ptr data, u32 size) -> bool {
+    let block = map_physical_memory(address, size);
+    if block == null {
+        ret false;
+    }
+    
+    memcpy(block.address, data, size);
+    ret true;
+}
+
+// Memory pattern scanning
+fn find_pattern(ptr memory, u32 size, ptr pattern, u32 pattern_size) -> ptr {
+    for (let i = 0; i < size - pattern_size; i = i + 1) {
+        let found = true;
+        for (let j = 0; j < pattern_size; j = j + 1) {
+            if deref(memory + i + j) != deref(pattern + j) {
+                found = false;
+                break;
+            }
+        }
+        if found {
+            ret memory + i;
+        }
+    }
+    ret null;
+}
+
+// Allocate memory in target process
+fn allocate_memory(HANDLE process, u32 size) -> MemoryBlock {
+    let block = MemoryBlock {
+        address: alloc size,
+        size: size,
+        protection: 0x40  // PAGE_EXECUTE_READWRITE
+    };
+    
+    let result = VirtualAllocEx(
+        process, 
+        block.address,
+        size,
+        0x1000 | 0x2000,  // MEM_COMMIT | MEM_RESERVE
+        block.protection
+    );
+    
+    if deref result == 0 {
+        ret null;
+    }
+    
+    ret block;
+}
+
+// Read memory from process
+fn read_memory(HANDLE process, ptr address, u32 size) -> ptr {
+    let buffer = alloc size;
+    
+    try {
+        import c "kernel32.dll::ReadProcessMemory";
+        ReadProcessMemory(process, address, buffer, size, null);
+        ret buffer;
+    } catch e {
+        free buffer;
+        ret null;
+    }
+} 

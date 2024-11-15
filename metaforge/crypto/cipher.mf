@@ -1,0 +1,69 @@
+// Funzioni di cifratura e decifratura
+struct CipherContext {
+    ptr key;
+    u32 key_size;
+    ptr iv;
+    u32 mode;
+}
+
+fn init_cipher(ptr key, u32 key_size, ptr iv, u32 mode) -> CipherContext {
+    let ctx = CipherContext {
+        key: key,
+        key_size: key_size,
+        iv: iv,
+        mode: mode
+    };
+    ret ctx;
+}
+
+fn encrypt_block(CipherContext ctx, ptr data, u32 size) -> ptr {
+    let encrypted = alloc(size);
+    
+    // Implementazione AES-256
+    let expanded_key = alloc(240);  // 14 round keys
+    aes_expand_key(ctx.key, expanded_key);
+    
+    // Encrypt each block
+    for (let i = 0; i < size; i = i + 16) {
+        let block = data + i;
+        if ctx.mode == 1 { // CBC mode
+            xor_blocks(block, ctx.iv, 16);
+        }
+        aes_encrypt_block(block, encrypted + i, expanded_key);
+        if ctx.mode == 1 {
+            memcpy(ctx.iv, encrypted + i, 16); // Update IV
+        }
+    }
+    
+    free(expanded_key);
+    ret encrypted;
+}
+
+fn decrypt_block(CipherContext ctx, ptr data, u32 size) -> ptr {
+    let decrypted = alloc(size);
+    
+    // Implementazione AES-256
+    let expanded_key = alloc(240);
+    aes_expand_key(ctx.key, expanded_key);
+    
+    // Decrypt each block
+    for (let i = 0; i < size; i = i + 16) {
+        let block = data + i;
+        let temp_iv = null;
+        if ctx.mode == 1 {
+            temp_iv = alloc(16);
+            memcpy(temp_iv, block, 16);
+        }
+        
+        aes_decrypt_block(block, decrypted + i, expanded_key);
+        
+        if ctx.mode == 1 {
+            xor_blocks(decrypted + i, ctx.iv, 16);
+            memcpy(ctx.iv, temp_iv, 16);
+            free(temp_iv);
+        }
+    }
+    
+    free(expanded_key);
+    ret decrypted;
+}

